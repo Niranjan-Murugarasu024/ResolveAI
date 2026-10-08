@@ -1,0 +1,188 @@
+{
+  "name": "ResolveAI Support Orchestration Pipeline",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "inbound-ticket",
+        "responseMode": "responseNode",
+        "options": {}
+      },
+      "id": "node-webhook-inbound",
+      "name": "Webhook: Inbound Ticket",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [240, 300]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "http://api:8000/api/v1/tickets",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={\n  \"customer_id\": $json.body.customer_id,\n  \"message\": $json.body.message\n}",
+        "options": {
+          "timeout": 30000
+        }
+      },
+      "id": "node-http-resolveai",
+      "name": "ResolveAI Orchestration Engine",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [480, 300]
+    },
+    {
+      "parameters": {
+        "dataType": "string",
+        "value1": "={{ $json.decision }}",
+        "rules": {
+          "rules": [
+            {
+              "value2": "RESOLVE",
+              "outputKey": "RESOLVE"
+            },
+            {
+              "value2": "REVIEW",
+              "outputKey": "REVIEW"
+            },
+            {
+              "value2": "ESCALATE",
+              "outputKey": "ESCALATE"
+            }
+          ]
+        }
+      },
+      "id": "node-switch-decision",
+      "name": "Switch: Decision Routing",
+      "type": "n8n-nodes-base.switch",
+      "typeVersion": 3,
+      "position": [720, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#customer-support-auto",
+        "text": "=✅ [ResolveAI AUTO-RESOLVED] Ticket {{ $json.ticket_id }} (Customer: {{ $json.customer_id }})\nIntent: {{ $json.intent }} | Priority: {{ $json.priority }}\nResponse Sent: {{ $json.response_text }}\nSources Cited: {{ $json.sources.join(', ') }}"
+      },
+      "id": "node-slack-resolve",
+      "name": "Dispatch Grounded Resolution",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [980, 160]
+    },
+    {
+      "parameters": {
+        "channel": "#support-human-review",
+        "text": "=⚠️ [ResolveAI REVIEW REQUIRED] Ticket {{ $json.ticket_id }} (Customer: {{ $json.customer_id }})\nConfidence: {{ Math.round($json.confidence * 100) }}%\nReason: {{ $json.reason }}\nDraft: {{ $json.response_text }}\nAction Required: Verify and approve response in ResolveAI Dashboard."
+      },
+      "id": "node-slack-review",
+      "name": "Queue in Human Review Stream",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [980, 300]
+    },
+    {
+      "parameters": {
+        "channel": "#incident-urgent-tier2",
+        "text": "=🚨 [ResolveAI SECURITY/CRITICAL ESCALATION] Ticket {{ $json.ticket_id }} (Customer: {{ $json.customer_id }})\nPriority: {{ $json.priority }} | Risk: {{ $json.risk }}\nEscalation Trigger: {{ $json.reason }}\nImmediate engineering action dispatched to on-call."
+      },
+      "id": "node-slack-escalate",
+      "name": "Page Tier 2 / Security Specialist",
+      "type": "n8n-nodes-base.slack",
+      "typeVersion": 2.2,
+      "position": [980, 440]
+    },
+    {
+      "parameters": {
+        "respondWith": "json",
+        "responseBody": "={\n  \"status\": \"SUCCESS\",\n  \"ticket_id\": $json.ticket_id,\n  \"decision\": $json.decision,\n  \"confidence\": $json.confidence,\n  \"human_required\": $json.human_required,\n  \"response_preview\": $json.response_text\n}"
+      },
+      "id": "node-webhook-response",
+      "name": "Respond to Inbound Webhook",
+      "type": "n8n-nodes-base.respondToWebhook",
+      "typeVersion": 1.1,
+      "position": [1240, 300]
+    }
+  ],
+  "connections": {
+    "Webhook: Inbound Ticket": {
+      "main": [
+        [
+          {
+            "node": "ResolveAI Orchestration Engine",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "ResolveAI Orchestration Engine": {
+      "main": [
+        [
+          {
+            "node": "Switch: Decision Routing",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Switch: Decision Routing": {
+      "main": [
+        [
+          {
+            "node": "Dispatch Grounded Resolution",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Queue in Human Review Stream",
+            "type": "main",
+            "index": 0
+          }
+        ],
+        [
+          {
+            "node": "Page Tier 2 / Security Specialist",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Dispatch Grounded Resolution": {
+      "main": [
+        [
+          {
+            "node": "Respond to Inbound Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Queue in Human Review Stream": {
+      "main": [
+        [
+          {
+            "node": "Respond to Inbound Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    },
+    "Page Tier 2 / Security Specialist": {
+      "main": [
+        [
+          {
+            "node": "Respond to Inbound Webhook",
+            "type": "main",
+            "index": 0
+          }
+        ]
+      ]
+    }
+  }
+}

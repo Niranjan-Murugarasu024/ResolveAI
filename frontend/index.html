@@ -1,0 +1,354 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <title>ResolveAI — Evaluation-First AI Support Resolution & Action Orchestration</title>
+  <meta name="description" content="Production-minded AI decision and automation platform with evaluation-first architecture, deterministic workflows, RAG, guardrails, and human escalation.">
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500;600&display=swap" rel="stylesheet">
+  <link rel="stylesheet" href="/static/index.css">
+</head>
+<body>
+  <div class="app-layout">
+    <!-- Top Navigation Header -->
+    <header class="top-nav">
+      <div class="brand-section">
+        <div class="brand-logo">
+          <svg width="24" height="24" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+            <path d="M12 2L2 7L12 12L22 7L12 2Z" stroke="#6366F1" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 17L12 22L22 17" stroke="#818CF8" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+            <path d="M2 12L12 17L22 12" stroke="#A5B4FC" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+          </svg>
+        </div>
+        <div class="brand-text">
+          <h1>ResolveAI</h1>
+          <span class="brand-tag">Evaluation-First Decision Orchestration</span>
+        </div>
+      </div>
+
+      <nav class="nav-tabs" role="tablist">
+        <button id="tab-btn-resolution" class="nav-tab-btn active" role="tab" aria-selected="true" onclick="switchTab('resolution')">
+          <span class="icon">⚡</span> Ticket Resolution
+        </button>
+        <button id="tab-btn-evals" class="nav-tab-btn" role="tab" aria-selected="false" onclick="switchTab('evals')">
+          <span class="icon">📊</span> Evaluation Studio
+        </button>
+        <button id="tab-btn-audit" class="nav-tab-btn" role="tab" aria-selected="false" onclick="switchTab('audit')">
+          <span class="icon">📜</span> Live Audit Trail
+        </button>
+      </nav>
+
+      <div class="header-status">
+        <div class="system-indicator">
+          <span class="status-dot pulsing"></span>
+          <span class="status-label">System Active</span>
+        </div>
+        <div class="gate-badge-mini" id="header-gate-badge">
+          Regression: <strong id="header-gate-val">CHECKING...</strong>
+        </div>
+      </div>
+    </header>
+
+    <!-- Main Container -->
+    <main class="main-content">
+
+      <!-- ================= TAB 1: TICKET RESOLUTION ================= -->
+      <section id="view-resolution" class="tab-view active">
+        <div class="grid-two-column">
+          
+          <!-- Left Column: Ingestion & Simulation Controls -->
+          <div class="panel card-glass">
+            <div class="panel-header">
+              <h2>Ticket Ingestion & Simulation</h2>
+              <span class="badge badge-subtle">Customer Gateway</span>
+            </div>
+
+            <!-- Fast Preset Scenarios -->
+            <div class="preset-section">
+              <label class="section-label">Select Demo Scenario (Oogway Benchmark):</label>
+              <div class="preset-chips">
+                <button id="preset-auth-401" class="chip active" onclick="loadPreset('401')">
+                  <span class="chip-dot dot-yellow"></span> 401 Auth Error
+                </button>
+                <button id="preset-sec-leak" class="chip" onclick="loadPreset('security')">
+                  <span class="chip-dot dot-red"></span> Compromised Key (L1)
+                </button>
+                <button id="preset-bill-refund" class="chip" onclick="loadPreset('refund')">
+                  <span class="chip-dot dot-orange"></span> ₹50,000 Refund Dispute
+                </button>
+                <button id="preset-rate-429" class="chip" onclick="loadPreset('rate')">
+                  <span class="chip-dot dot-blue"></span> 429 Rate Limit
+                </button>
+                <button id="preset-pwd-reset" class="chip" onclick="loadPreset('password')">
+                  <span class="chip-dot dot-green"></span> Password Reset (Fast-Path)
+                </button>
+              </div>
+            </div>
+
+            <!-- Inbound Form -->
+            <form id="ticket-form" onsubmit="handleTicketSubmit(event)">
+              <div class="form-group">
+                <label for="input-customer-id">Customer ID</label>
+                <input type="text" id="input-customer-id" value="CUS-1023" required>
+              </div>
+
+              <div class="form-group">
+                <label for="input-ticket-message">Customer Support Query</label>
+                <textarea id="input-ticket-message" rows="4" required>My production API is returning 401 Unauthorized when I call /v1/users since this morning. It worked yesterday.</textarea>
+              </div>
+
+              <button type="submit" id="btn-process-ticket" class="btn btn-primary btn-block">
+                <span>Run ResolveAI Orchestration</span>
+                <span class="shortcut">↵</span>
+              </button>
+            </form>
+
+            <!-- Customer Profile Snapshot -->
+            <div class="customer-snapshot">
+              <div class="snapshot-header">
+                <h3>Customer Metadata (Ground Truth)</h3>
+                <span class="plan-badge">Pro Plan</span>
+              </div>
+              <div class="snapshot-details">
+                <div><span>Name:</span> <strong>Acme Cloud Infrastructure</strong></div>
+                <div><span>Email:</span> <strong>engineering@acmecloud.io</strong></div>
+                <div><span>API Key Status:</span> <strong class="text-success">Active (key_prod_9a4f)</strong></div>
+                <div><span>Monthly Quota:</span> <strong>14,200 / 50,000 (28.4%)</strong></div>
+              </div>
+            </div>
+          </div>
+
+          <!-- Right Column: Live Orchestration Trace -->
+          <div class="panel card-glass" id="trace-panel">
+            <div class="panel-header">
+              <h2>Orchestration Execution Trace</h2>
+              <div class="trace-meta" id="trace-meta-tags">
+                <span class="badge" id="trace-status-badge">Awaiting Ingestion</span>
+              </div>
+            </div>
+
+            <div class="trace-timeline" id="trace-timeline">
+              <!-- Step 1: Input Guardrail -->
+              <div class="timeline-item" id="trace-step-guardrail">
+                <div class="timeline-bullet">1</div>
+                <div class="timeline-body">
+                  <div class="step-head">
+                    <h4>Input Guardrail & Sanitization</h4>
+                    <span class="step-badge" id="step-guard-badge">Ready</span>
+                  </div>
+                  <p class="step-desc" id="step-guard-desc">Scans for prompt injection attacks, malicious tokens, and redacts PII/PCI card numbers.</p>
+                </div>
+              </div>
+
+              <!-- Step 2: Classifier -->
+              <div class="timeline-item" id="trace-step-classifier">
+                <div class="timeline-bullet">2</div>
+                <div class="timeline-body">
+                  <div class="step-head">
+                    <h4>Ticket Classifier (Structured Metadata)</h4>
+                    <span class="step-badge" id="step-clf-badge">Pending</span>
+                  </div>
+                  <div class="step-meta-chips" id="step-clf-meta">
+                    <span class="meta-tag">Intent: —</span>
+                    <span class="meta-tag">Priority: —</span>
+                    <span class="meta-tag">Risk: —</span>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 3: Deterministic Rules -->
+              <div class="timeline-item" id="trace-step-rules">
+                <div class="timeline-bullet">3</div>
+                <div class="timeline-body">
+                  <div class="step-head">
+                    <h4>Deterministic Rules Engine</h4>
+                    <span class="step-badge" id="step-rules-badge">Pending</span>
+                  </div>
+                  <p class="step-desc" id="step-rules-desc">Checks for deterministic zero-cost paths (Security Stop, Refund Policy Gate, Self-Serve).</p>
+                </div>
+              </div>
+
+              <!-- Step 4: RAG Retrieval -->
+              <div class="timeline-item" id="trace-step-rag">
+                <div class="timeline-bullet">4</div>
+                <div class="timeline-body">
+                  <div class="step-head">
+                    <h4>Knowledge Retrieval (RAG)</h4>
+                    <span class="step-badge" id="step-rag-badge">Pending</span>
+                  </div>
+                  <div class="rag-sources-list" id="step-rag-sources">No documents retrieved yet.</div>
+                </div>
+              </div>
+
+              <!-- Step 5: Authorized Tool Calls -->
+              <div class="timeline-item" id="trace-step-tools">
+                <div class="timeline-bullet">5</div>
+                <div class="timeline-body">
+                  <div class="step-head">
+                    <h4>Authorized Tool Execution</h4>
+                    <span class="step-badge" id="step-tools-badge">Pending</span>
+                  </div>
+                  <div class="tools-execution-list" id="step-tools-list">Awaiting tool dispatch.</div>
+                </div>
+              </div>
+
+              <!-- Step 6: Decision Engine -->
+              <div class="timeline-item" id="trace-step-decision">
+                <div class="timeline-bullet">6</div>
+                <div class="timeline-body">
+                  <div class="step-head">
+                    <h4>Multi-Signal Decision Engine</h4>
+                    <span class="decision-pill" id="step-decision-pill">PENDING</span>
+                  </div>
+                  <div class="decision-breakdown" id="step-decision-breakdown">
+                    <div class="score-bar-group">
+                      <div class="score-bar-label"><span>Composite Confidence Score:</span> <strong id="lbl-composite-score">0.00</strong></div>
+                      <div class="progress-track"><div class="progress-fill" id="bar-composite" style="width: 0%"></div></div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+
+              <!-- Step 7: Final Resolution Output -->
+              <div class="timeline-item final-step" id="trace-step-output">
+                <div class="timeline-bullet final-bullet">✓</div>
+                <div class="timeline-body">
+                  <div class="step-head">
+                    <h4>Generated Grounded Response</h4>
+                    <span class="step-badge badge-success" id="step-output-badge">Complete</span>
+                  </div>
+                  <div class="response-box" id="response-box-text">Awaiting resolution execution...</div>
+                  
+                  <div class="human-actions-bar" id="human-actions-bar" style="display: none;">
+                    <span class="action-prompt">Human-in-the-Loop Actions:</span>
+                    <button class="btn btn-sm btn-outline-success" onclick="executeHumanAction('APPROVE')">✓ Approve & Dispatch</button>
+                    <button class="btn btn-sm btn-outline-warning" onclick="executeHumanAction('EDIT')">✎ Edit Response</button>
+                    <button class="btn btn-sm btn-outline-danger" onclick="executeHumanAction('ESCALATE')">⚠ Escalate to Specialist</button>
+                  </div>
+                </div>
+              </div>
+
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= TAB 2: EVALUATION STUDIO ================= -->
+      <section id="view-evals" class="tab-view">
+        <div class="evals-dashboard">
+          
+          <!-- Top Controls & Regression Gate Summary -->
+          <div class="card-glass eval-header-card">
+            <div class="eval-title-group">
+              <h2>Evaluation & Regression Studio</h2>
+              <p>Gold-standard benchmark suite (52 Curated Test Cases) measuring reliability, grounding, and escalation accuracy.</p>
+            </div>
+            <div class="eval-action-group">
+              <button id="btn-run-full-eval" class="btn btn-primary" onclick="triggerEvaluationSuite()">
+                <span class="icon">▶</span> Run Full Evaluation Suite
+              </button>
+            </div>
+          </div>
+
+          <!-- Regression Status Banner -->
+          <div class="regression-banner" id="regression-banner">
+            <div class="banner-icon" id="banner-icon">🛡️</div>
+            <div class="banner-content">
+              <h3 id="banner-title">REGRESSION STATUS: EVALUATING...</h3>
+              <p id="banner-desc">Checking deployment safety against predefined reliability tolerances.</p>
+            </div>
+            <div class="banner-badge" id="banner-badge">INITIALIZING</div>
+          </div>
+
+          <!-- Metric Cards Grid -->
+          <div class="metric-grid">
+            <div class="metric-card">
+              <div class="metric-label">Intent Accuracy</div>
+              <div class="metric-val text-primary" id="metric-intent">--%</div>
+              <div class="metric-gate">Gate: ≥ 88.0%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Priority Alignment</div>
+              <div class="metric-val text-indigo" id="metric-priority">--%</div>
+              <div class="metric-gate">Gate: ≥ 85.0%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Retrieval Recall@3</div>
+              <div class="metric-val text-cyan" id="metric-retrieval">--%</div>
+              <div class="metric-gate">Gate: ≥ 80.0%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Tool Selection Accuracy</div>
+              <div class="metric-val text-emerald" id="metric-tool">--%</div>
+              <div class="metric-gate">Gate: ≥ 85.0%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Human Escalation Accuracy</div>
+              <div class="metric-val text-amber" id="metric-escalation">--%</div>
+              <div class="metric-gate">Gate: ≥ 90.0%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Response Groundedness</div>
+              <div class="metric-val text-violet" id="metric-groundedness">--%</div>
+              <div class="metric-gate">Gate: ≥ 90.0%</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Avg Decision Latency</div>
+              <div class="metric-val" id="metric-latency">-- ms</div>
+              <div class="metric-gate">SLA: < 2,500 ms</div>
+            </div>
+            <div class="metric-card">
+              <div class="metric-label">Avg Cost / Ticket</div>
+              <div class="metric-val" id="metric-cost">$0.0000</div>
+              <div class="metric-gate">Budget: < $0.05</div>
+            </div>
+          </div>
+
+          <!-- Category Breakdown Table -->
+          <div class="card-glass eval-table-card">
+            <h3>Domain Category Reliability Breakdown</h3>
+            <div class="table-responsive">
+              <table class="data-table" id="eval-category-table">
+                <thead>
+                  <tr>
+                    <th>Support Domain</th>
+                    <th>Total Cases</th>
+                    <th>Passed</th>
+                    <th>Accuracy</th>
+                    <th>Regression Health</th>
+                  </tr>
+                </thead>
+                <tbody id="eval-table-body">
+                  <tr><td colspan="5" class="text-center">Loading evaluation metrics...</td></tr>
+                </tbody>
+              </table>
+            </div>
+          </div>
+
+        </div>
+      </section>
+
+      <!-- ================= TAB 3: AUDIT TRAIL ================= -->
+      <section id="view-audit" class="tab-view">
+        <div class="card-glass audit-container">
+          <div class="panel-header">
+            <h2>Immutable Decision Audit Trail</h2>
+            <button class="btn btn-sm btn-outline" onclick="loadAuditLogs()">⟳ Refresh Logs</button>
+          </div>
+          <p class="section-desc">Every ingestion, classification, rule evaluation, tool dispatch, and decision score is permanently logged for compliance and observability.</p>
+          
+          <div class="audit-log-feed" id="audit-log-feed">
+            <div class="audit-empty">Click 'Refresh Logs' or process a ticket to inspect live records.</div>
+          </div>
+        </div>
+      </section>
+
+    </main>
+  </div>
+
+  <script src="/static/app.js"></script>
+</body>
+</html>

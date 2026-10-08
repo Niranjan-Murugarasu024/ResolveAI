@@ -1,0 +1,43 @@
+version: '3.8'
+
+services:
+  api:
+    build: .
+    container_name: resolveai-api
+    ports:
+      - "9000:8000"
+    environment:
+      - ENV=production
+      - DATABASE_URL=sqlite+aiosqlite:///./resolveai.db
+      - OPENROUTER_API_KEY=${OPENROUTER_API_KEY}
+      - DEFAULT_MODEL=openai/gpt-4o-mini
+    volumes:
+      - ./knowledge:/app/knowledge
+      - ./evaluation:/app/evaluation
+      - ./resolveai.db:/app/resolveai.db
+    healthcheck:
+      test: [ "CMD", "curl", "-f", "http://localhost:9000/health" ]
+      interval: 10s
+      timeout: 5s
+      retries: 3
+    restart: unless-stopped
+
+  n8n:
+    image: docker.n8n.io/n8nio/n8n:latest
+    container_name: resolveai-n8n
+    ports:
+      - "5678:5678"
+    environment:
+      - N8N_HOST=localhost
+      - N8N_PORT=5678
+      - N8N_PROTOCOL=http
+      - WEBHOOK_URL=http://localhost:5678/
+    volumes:
+      - n8n_data:/home/node/.n8n
+      - ./n8n:/backup/n8n
+    depends_on:
+      - api
+    restart: unless-stopped
+
+volumes:
+  n8n_data:
